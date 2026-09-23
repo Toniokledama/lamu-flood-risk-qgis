@@ -1,5 +1,7 @@
-# lamu-flood-risk-qgis
+# Lamu Flood Risk QGIS
+
 GIS-based flood susceptibility and risk mapping for Lamu County, Kenya using QGIS, terrain, hydrological, land-cover and infrastructure data.
+
 ## Project Overview
 
 This project develops a GIS-based flood susceptibility and flood risk assessment for Lamu County, Kenya using QGIS.
@@ -23,6 +25,8 @@ Lamu County, Kenya.
 ## Software and Tools
 
 - QGIS
+- GRASS GIS processing tools in QGIS
+- SRTM 30 m DEM
 - Google Earth Engine, where required
 - Python, where required
 
@@ -40,19 +44,23 @@ Lamu County, Kenya.
 
 ## Methodology
 
-The general workflow will be:
+The general workflow is:
 
-DEM  
+SRTM DEM  
 ↓  
-Hydrological Conditioning  
+Clip DEM to Lamu County  
 ↓  
-Elevation and Slope  
+Reproject to WGS 84 / UTM Zone 37S (EPSG:32737)  
+↓  
+Hydrological conditioning / sink filling  
 ↓  
 Flow Direction  
 ↓  
 Flow Accumulation  
 ↓  
 Drainage Network  
+↓  
+Elevation and Slope Analysis  
 ↓  
 Rainfall, Land Cover and Soil Analysis  
 ↓  
@@ -61,6 +69,35 @@ Flood Susceptibility Mapping
 Exposure Analysis  
 ↓  
 Flood Risk Mapping
+
+## Current Processing Status
+
+### Completed
+
+- Lamu County boundary prepared.
+- SRTM 30 m DEM loaded.
+- DEM clipped to the Lamu County study area: `Lamu_DEM_Clipped_Raw`.
+- DEM reprojected to EPSG:32737 (WGS 84 / UTM Zone 37S): `Lamu_DEM_30m_UTM37S`.
+- DEM sinks/depressions filled to produce the hydrologically conditioned raster: `Lamu_DEM_Filled`.
+- Flow-direction raster generated: `Lamu_Flow_Direction_WL`.
+
+### Current Step
+
+**Flow accumulation** using GRASS `r.watershed` with `Lamu_DEM_Filled` as the elevation input.
+
+The intended output is:
+
+`Lamu_Flow_Accumulation_WL.tif`
+
+### Next Steps
+
+1. Complete flow accumulation.
+2. Extract the drainage/stream network.
+3. Derive and classify slope and other terrain factors.
+4. Add rainfall, land-cover and soil factors.
+5. Develop flood-susceptibility classes.
+6. Analyse settlement, road and infrastructure exposure.
+7. Produce the final Lamu County flood-risk map.
 
 ## Planned Outputs
 
@@ -75,6 +112,6 @@ Flood Risk Mapping
 
 ## Project Status
 
-**Work in progress.**
+**Work in progress — hydrological preprocessing is underway.**
 
-The methodology, datasets and outputs will be updated as the analysis progresses.
+Detailed processing notes are maintained in [`docs/workflow-progress.md`](docs/workflow-progress.md).
