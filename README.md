@@ -6,7 +6,7 @@ GIS-based flood susceptibility and risk mapping for Lamu County, Kenya using QGI
 
 This project develops a GIS-based flood susceptibility and flood risk assessment for Lamu County, Kenya using QGIS.
 
-The analysis will integrate terrain, hydrological, rainfall, land-cover, soil and infrastructure datasets to identify areas susceptible to flooding and assess the exposure of settlements and critical infrastructure.
+The analysis integrates terrain, hydrological, rainfall, land-cover, soil and infrastructure datasets to identify areas susceptible to flooding and assess the exposure of settlements and critical infrastructure.
 
 ## Objectives
 
@@ -26,77 +26,78 @@ Lamu County, Kenya.
 
 - QGIS
 - GRASS GIS processing tools in QGIS
+- SAGA GIS processing tools in QGIS
 - SRTM 30 m DEM
 - Google Earth Engine, where required
 - Python, where required
 
-## Planned Data
-
-- Digital Elevation Model (DEM)
-- Rainfall
-- Rivers and drainage network
-- Land cover
-- Soil
-- Roads
-- Settlements
-- Population
-- Critical infrastructure
-
 ## Methodology
-
-The general workflow is:
 
 SRTM DEM  
 ↓  
-Clip DEM to Lamu County  
+Prepare 50 km hydrological buffer around Lamu County  
 ↓  
-Reproject to WGS 84 / UTM Zone 37S (EPSG:32737)  
+Clip buffered DEM and reproject to WGS 84 / UTM Zone 37S (EPSG:32737)  
 ↓  
-Hydrological conditioning / sink filling  
+Hydrological diagnostics and flow accumulation  
 ↓  
-Flow Direction  
+Clip accumulation back to Lamu County  
 ↓  
-Flow Accumulation  
+Stream thresholding and drainage extraction  
 ↓  
-Drainage Network  
+Slope and terrain analysis  
 ↓  
-Elevation and Slope Analysis  
+Rainfall, land-cover and soil analysis  
 ↓  
-Rainfall, Land Cover and Soil Analysis  
+Flood susceptibility mapping  
 ↓  
-Flood Susceptibility Mapping  
+Exposure analysis  
 ↓  
-Exposure Analysis  
-↓  
-Flood Risk Mapping
+Flood risk mapping
 
 ## Current Processing Status
 
 ### Completed
 
-- Lamu County boundary prepared.
+- Lamu County boundary prepared and reprojected to EPSG:32737.
 - SRTM 30 m DEM loaded.
-- DEM clipped to the Lamu County study area: `Lamu_DEM_Clipped_Raw`.
-- DEM reprojected to EPSG:32737 (WGS 84 / UTM Zone 37S): `Lamu_DEM_30m_UTM37S`.
-- DEM sinks/depressions filled to produce the hydrologically conditioned raster: `Lamu_DEM_Filled`.
-- Flow-direction raster generated: `Lamu_Flow_Direction_WL`.
+- Original county-clipped DEM created and reprojected.
+- Initial sink filling, flow direction and flow accumulation completed for diagnostic purposes.
+- A 50 km hydrological buffer was created around Lamu County to reduce administrative-boundary artefacts.
+- Buffered SRTM DEM created and reprojected to EPSG:32737.
+- SAGA Fill Sinks (Wang & Liu) was tested on the buffered DEM.
+- GRASS `r.watershed` accumulation from the unfilled buffered DEM was retained as the better working hydrology result after comparison.
+- Working buffered flow-accumulation raster created: `Lamu_Flow_Accumulation_Buffer50km_RAW_WL`.
+- Accumulation clipped back to Lamu County: `Lamu_Flow_Accumulation_Lamu_RAW_WL`.
+- Negative-accumulation diagnostic showed approximately 1.17% of valid Lamu cells were negative.
+- Absolute accumulation raster created: `Lamu_Flow_Accumulation_Lamu_ABS`.
+- A 5,000-cell stream threshold was selected as the working drainage threshold, equivalent to about 4.5 km² contributing area at 30 m resolution.
+- Stream mask converted to integer/CELL format, thinned, background converted to NULL, and successfully vectorized.
+- Vector drainage network clipped to the county boundary: `Lamu_Drainage_5000_Clipped`.
+- Dissolved drainage network created: `Lamu_Drainage_5000_Dissolved`.
 
 ### Current Step
 
-**Flow accumulation** using GRASS `r.watershed` with `Lamu_DEM_Filled` as the elevation input.
+Hydrological preprocessing and drainage extraction are complete enough to proceed to the next flood-conditioning factor.
 
-The intended output is:
+The next main analysis step is **slope derivation and classification** from the projected Lamu DEM.
 
-`Lamu_Flow_Accumulation_WL.tif`
+## Important Processing Decisions
 
-### Next Steps
+- Large raster datasets remain on the local computer and are not stored in GitHub.
+- Hydrology was processed over a 50 km buffer instead of exactly at the county boundary to reduce edge effects.
+- The SAGA-filled DEM produced geometric artefacts in the derived flow accumulation, so the GRASS `r.watershed` result from the projected buffered DEM without SAGA filling was retained for the working drainage model.
+- A 5,000-cell threshold is currently used for the working stream network.
+- The drainage line-merging step was not required for continuing the flood-susceptibility workflow.
 
-1. Complete flow accumulation.
-2. Extract the drainage/stream network.
-3. Derive and classify slope and other terrain factors.
-4. Add rainfall, land-cover and soil factors.
-5. Develop flood-susceptibility classes.
-6. Analyse settlement, road and infrastructure exposure.
+## Next Steps
+
+1. Derive slope from the projected Lamu DEM.
+2. Reclassify slope into flood-susceptibility classes.
+3. Prepare additional conditioning factors such as rainfall, land cover and soil.
+4. Standardise the factors for multi-criteria flood-susceptibility analysis.
+5. Produce the flood-susceptibility surface.
+6. Add settlements, roads, population and critical infrastructure for exposure analysis.
 7. Produce the final Lamu County flood-risk map.
 
 ## Planned Outputs
@@ -112,6 +113,6 @@ The intended output is:
 
 ## Project Status
 
-**Work in progress — hydrological preprocessing is underway.**
+**Work in progress — hydrological preprocessing and drainage extraction completed; terrain-factor analysis is next.**
 
 Detailed processing notes are maintained in [`docs/workflow-progress.md`](docs/workflow-progress.md).
