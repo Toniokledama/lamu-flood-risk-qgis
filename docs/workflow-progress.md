@@ -2,86 +2,153 @@
 
 ## Current Checkpoint
 
-The project has completed the main hydrological preprocessing and working drainage extraction stages in QGIS. The next major flood-conditioning factor is slope.
+The **flood susceptibility stage is complete**. The workflow has progressed from hydrological preprocessing through terrain, rainfall, land-cover and soil preparation, AHP weighting, final classification, settlement labelling and final map layout.
+
+The next analytical phase is validation/sensitivity assessment and, if required, exposure and vulnerability analysis for a full flood-risk product.
 
 ## Completed Processing
 
+### 1. Boundary and DEM preparation
+
 1. Prepared the Lamu County study boundary.
-2. Reprojected the county boundary to WGS 84 / UTM Zone 37S (EPSG:32737).
-3. Loaded the SRTM 30 m Digital Elevation Model (DEM).
-4. Created an initial county-clipped DEM and reprojected it to EPSG:32737.
-5. Performed an initial sink-fill and flow-direction workflow for diagnostic purposes.
-6. Created an initial flow-accumulation raster and identified county-boundary effects.
-7. Created a 50 km hydrological buffer around Lamu County in EPSG:32737.
-8. Reprojected the buffer to EPSG:4326 for clipping the original SRTM raster.
-9. Created `Lamu_DEM_Buffer50km_Raw` from the original SRTM dataset.
-10. Reprojected the buffered DEM to EPSG:32737 as `Lamu_DEM_Buffer50km_UTM37S`.
-11. Tested SAGA Fill Sinks (Wang & Liu) on the buffered DEM.
-12. Compared GRASS `r.watershed` accumulation from the SAGA-filled DEM against accumulation from the unfilled projected buffered DEM.
-13. Retained the unfilled-buffer GRASS result as the better working hydrology raster because the SAGA-filled version showed strong geometric artefacts.
-14. Created `Lamu_Flow_Accumulation_Buffer50km_RAW_WL`.
-15. Clipped the working accumulation raster back to Lamu County as `Lamu_Flow_Accumulation_Lamu_RAW_WL`.
-16. Created a negative-accumulation mask. The mean was approximately 0.01166497, indicating about 1.17% of valid Lamu cells had negative GRASS accumulation values.
-17. Created `Lamu_Flow_Accumulation_Lamu_ABS` using the absolute magnitude of the accumulation raster for stream thresholding.
-18. Selected a 5,000-cell working stream threshold.
-    - 30 m × 30 m cell = 900 m².
-    - 5,000 cells ≈ 4.5 km² contributing area.
-19. Created `Lamu_StreamMask_5000`.
-20. Converted the stream mask to integer/CELL-compatible format.
-21. Applied GRASS `r.thin`.
-22. Converted background value 0 to NULL using GRASS `r.null` and thinned again.
-23. Successfully converted the stream raster to vector lines using GRASS `r.to.vect`.
-24. Saved the vector drainage network and clipped it to Lamu County as `Lamu_Drainage_5000_Clipped`.
-25. Created `Lamu_Drainage_5000_Dissolved`.
-26. A length-based cleanup attempt was rejected because the raster-to-vector process produced many short database segments even where the mapped stream was visually continuous.
-27. Line merging was investigated but is not required for the current flood-susceptibility workflow.
+2. Reprojected the county boundary to WGS 84 / UTM Zone 37S (`EPSG:32737`).
+3. Loaded the 30 m DEM.
+4. Created county and buffered DEM products.
+5. Created a 50 km hydrological buffer around Lamu County to reduce administrative-boundary artefacts.
 
-## Current Working Layers
+### 2. Hydrological preprocessing and drainage
 
-Key hydrology layers to retain include:
+6. Tested SAGA Fill Sinks (Wang & Liu).
+7. Compared SAGA-filled and GRASS `r.watershed` flow-accumulation outputs.
+8. Retained the GRASS result from the projected buffered DEM because the SAGA-filled workflow produced conspicuous geometric artefacts.
+9. Created `Lamu_Flow_Accumulation_Buffer50km_RAW_WL`.
+10. Clipped the working accumulation back to Lamu County as `Lamu_Flow_Accumulation_Lamu_RAW_WL`.
+11. Created `Lamu_Flow_Accumulation_Lamu_ABS` for stream thresholding.
+12. Selected a 5,000-cell stream threshold, equivalent to approximately 4.5 km² contributing area at 30 m resolution.
+13. Created and thinned the stream raster.
+14. Converted the stream raster to vector lines.
+15. Created `Lamu_Drainage_5000_Clipped` and `Lamu_Drainage_5000_Dissolved`.
+16. Created the distance-to-drainage susceptibility raster and standardized it to a 1–5 scale.
 
-- `Lamu_DEM_Buffer50km_UTM37S`
-- `Lamu_Flow_Accumulation_Buffer50km_RAW_WL`
-- `Lamu_Flow_Accumulation_Lamu_RAW_WL`
-- `Lamu_Flow_Accumulation_Lamu_ABS`
-- `Lamu_StreamMask_5000`
-- `Lamu_Drainage_5000_Clipped`
-- `Lamu_Drainage_5000_Dissolved`
-- `Lamu_Boundary_UTM37S`
+### 3. Terrain factors
 
-Diagnostic/test layers should be retained until the workflow is fully validated, but they are not necessarily final model inputs.
+17. Derived slope from the projected DEM.
+18. Reclassified slope into flood-susceptibility scores from 1 to 5.
+19. Confirmed the correct final slope layer as `Lamu_Slope_Reclassified_FINAL`.
+20. Prepared and aligned the elevation susceptibility raster as `Lamu_Elevation_Reclassified_Aligned2`.
+
+### 4. Rainfall factor
+
+21. Used CHIRPS rainfall in Google Earth Engine to derive long-term mean annual Rx5day for 1991–2025.
+22. Exported and processed the rainfall surface for Lamu County with a surrounding buffer to reduce coastal gaps.
+23. Aligned the final continuous rainfall raster to the 30 m project grid.
+24. Reclassified rainfall into five susceptibility classes, with higher Rx5day assigned higher susceptibility.
+25. Final rainfall susceptibility raster: `Lamu_Rainfall_Rx5day_Reclassified_v3`.
+
+### 5. Land-cover factor
+
+26. Used Google Dynamic World to derive annual-mode land cover for 2025.
+27. Exported the 10 m land-cover raster in `EPSG:32737`.
+28. Aligned it to the 30 m reference grid using nearest-neighbour resampling.
+29. Reclassified land-cover classes to flood-susceptibility scores.
+30. Permanent water was assigned NoData rather than a land susceptibility score.
+31. Final layer: `Lamu_LULC_2025_Reclassified_v2`.
+
+### 6. Soil factor
+
+32. Reused the Kenya SOTER / KENSOTER soil dataset.
+33. Reprojected KENSOTER to `EPSG:32737`.
+34. Clipped soil polygons to Lamu County.
+35. Joined the processed topsoil texture lookup table by SUID.
+36. Scored soil texture according to relative runoff/infiltration susceptibility:
+    - Clay = 5
+    - Sandy Clay Loam = 4
+    - Clay Loam = 4
+    - Loam = 3
+    - Sandy Loam = 2
+    - Loamy Sand = 1
+    - Sand = 1
+37. Rasterized the scored soil polygons to the 30 m reference grid.
+38. Final layer: `Lamu_Soil_Texture_Reclassified.tif`.
+
+### 7. Raster alignment and standardisation
+
+39. Standardised the six model factors to a common 1–5 susceptibility scale.
+40. Confirmed common CRS, extent, origin, resolution and raster dimensions.
+41. Final working grid: 5007 × 3268 cells at 30 m resolution in `EPSG:32737`.
+
+### 8. AHP weighted overlay
+
+42. Used the following AHP weights:
+
+| Factor | Weight |
+|---|---:|
+| Rainfall | 0.2422 |
+| Distance to drainage | 0.2422 |
+| Elevation | 0.2148 |
+| Slope | 0.1348 |
+| Land cover | 0.0829 |
+| Soil texture | 0.0829 |
+
+43. Pairwise consistency ratio was approximately 0.0088.
+44. An early weighted-overlay output was rejected after detecting that a duplicate incorrectly named slope layer contained rainfall-like values.
+45. The correct slope raster was renamed `Lamu_Slope_Reclassified_FINAL` and the weighted overlay was rebuilt.
+46. Final continuous surface: `Lamu_Flood_Susceptibility_AHP_v3.tif`.
+47. Final continuous statistics:
+    - Min: 1.2146
+    - Max: 4.9990
+    - Mean: 3.0368
+    - Std. dev.: 0.5485
+
+### 9. Final susceptibility classification
+
+48. Classified the continuous AHP surface into five equal-interval classes:
+    - 1 = Very Low
+    - 2 = Low
+    - 3 = Moderate
+    - 4 = High
+    - 5 = Very High
+49. Final raster: `Lamu_Flood_Susceptibility_Final_Classified.tif`.
+50. Final classified raster statistics confirmed valid class values 1–5.
+
+## Final Area Results
+
+| Class | Area (km²) | Percentage |
+|---|---:|---:|
+| Very Low | 167.24 | 2.79% |
+| Low | 1,537.31 | 25.66% |
+| Moderate | 3,063.37 | 51.13% |
+| High | 1,167.79 | 19.49% |
+| Very High | 55.88 | 0.93% |
+
+High + Very High susceptibility covers approximately **1,223.67 km² (20.42%)** of the classified area.
+
+Total classified area is approximately **5,991.59 km²**.
+
+### 10. Settlement reference layer and cartographic presentation
+
+51. Installed and used QuickOSM to retrieve settlement points.
+52. Clipped OSM settlements to the Lamu County boundary.
+53. Reduced the settlement layer to selected reference places to avoid label clutter.
+54. Used a five-class green-to-red susceptibility colour scheme.
+55. Created a 4:5 portrait print layout for social-media presentation.
+56. Added title, legend, north arrow, scale bar, coordinate grid, settlement labels and author information.
+57. Exported the final map as a high-resolution PNG for presentation.
 
 ## Important Methodological Notes
 
-- Hydrology should not be computed strictly inside an administrative boundary when significant upstream terrain lies outside that boundary. A 50 km working buffer was therefore introduced to reduce edge artefacts.
-- The 50 km buffer is adequate for local drainage/susceptibility modelling, but it does not represent the full upstream catchment of every major river entering Lamu County.
-- GRASS `r.watershed` negative accumulation values indicate potentially incomplete upstream contribution from outside the processing region; they are not automatically invalid data.
-- Only about 1.17% of valid county cells were negative after buffered processing, so the 50 km buffer was accepted for the local drainage model.
-- The SAGA-filled DEM produced conspicuous geometric flow patterns and was not selected as the working accumulation basis.
-- The 5,000-cell threshold is a working drainage threshold rather than a universal hydrological constant. It can be revisited if cartographic or modelling needs change.
-- Large DEM and raster products remain local and are not uploaded to GitHub.
+- Hydrology was processed over a 50 km buffer instead of strictly within the county boundary to reduce edge effects.
+- The buffer does not represent the complete upstream catchment of every river entering Lamu County.
+- The 5,000-cell drainage threshold is a modelling choice, not a universal hydrological constant.
+- AHP weighting is a multi-criteria decision method and should be accompanied by sensitivity analysis when used in formal research.
+- Large rasters remain local and are not committed to GitHub.
+- The final product is a **flood susceptibility map**, not a real-time flood forecast.
+- A full flood-risk model would additionally require exposure and vulnerability data.
 
-## Current QGIS Step
+## Next Steps
 
-Hydrological preprocessing and drainage extraction have reached a usable checkpoint.
-
-### Next main operation
-
-Derive **slope** from the projected county DEM, using EPSG:32737 and 30 m terrain data.
-
-Suggested output:
-
-`Lamu_Slope_Degrees.tif`
-
-After slope generation, inspect the distribution and classify slope into flood-susceptibility classes before combining it with the other conditioning factors.
-
-## Immediate Next Workflow
-
-1. Organize current local project outputs into a stable folder structure.
-2. Derive the slope raster.
-3. Inspect slope statistics and select appropriate classes for Lamu's generally low-relief terrain.
-4. Prepare rainfall, land-cover and soil layers.
-5. Standardise/reclassify all flood-conditioning factors.
-6. Combine factors into a flood-susceptibility model.
-7. Add exposure layers such as settlements, roads, population and critical infrastructure.
-8. Produce final flood-risk products.
+1. Perform sensitivity analysis on the AHP weights and class thresholds.
+2. Compare the susceptibility surface with independent historical flood observations or flood-extent data where available.
+3. Document validation limitations clearly.
+4. Add roads, population, settlements and critical infrastructure if a full exposure/risk assessment is required.
+5. Preserve the final QGIS project, map export and lightweight documentation in the local archive and GitHub repository as appropriate.
