@@ -1,118 +1,140 @@
 # Lamu Flood Risk QGIS
 
-GIS-based flood susceptibility and risk mapping for Lamu County, Kenya using QGIS, terrain, hydrological, land-cover and infrastructure data.
+GIS-based flood susceptibility and risk mapping for Lamu County, Kenya using QGIS, terrain, hydrological, rainfall, land-cover and soil data.
 
-## Project Overview
+## Project Status
 
-This project develops a GIS-based flood susceptibility and flood risk assessment for Lamu County, Kenya using QGIS.
+**Flood susceptibility modelling is complete.** The project has progressed from DEM preparation and drainage extraction through terrain, rainfall, land-cover and soil processing, AHP weighting, final susceptibility classification, settlement labelling and cartographic presentation.
 
-The analysis integrates terrain, hydrological, rainfall, land-cover, soil and infrastructure datasets to identify areas susceptible to flooding and assess the exposure of settlements and critical infrastructure.
-
-## Objectives
-
-- Prepare and process spatial datasets for Lamu County.
-- Analyse elevation and slope characteristics.
-- Derive drainage, flow direction and flow accumulation from a Digital Elevation Model (DEM).
-- Assess areas susceptible to riverine, pluvial and coastal flooding.
-- Develop a flood susceptibility map.
-- Analyse exposure of settlements, roads and infrastructure.
-- Produce a final flood risk map.
+The next phase is validation/sensitivity assessment and, where required, exposure analysis for settlements, roads, population and critical infrastructure.
 
 ## Study Area
 
 Lamu County, Kenya.
+
+## Analysis Grid
+
+- CRS: WGS 84 / UTM Zone 37S (`EPSG:32737`)
+- Working resolution: 30 m
+- Raster dimensions: 5007 × 3268 cells
+- Pixel area: 900 m²
 
 ## Software and Tools
 
 - QGIS
 - GRASS GIS processing tools in QGIS
 - SAGA GIS processing tools in QGIS
-- SRTM 30 m DEM
-- Google Earth Engine, where required
-- Python, where required
+- Google Earth Engine
+- OpenStreetMap / QuickOSM for settlement reference points
 
-## Methodology
+## Flood-Conditioning Factors
 
-SRTM DEM  
-↓  
-Prepare 50 km hydrological buffer around Lamu County  
-↓  
-Clip buffered DEM and reproject to WGS 84 / UTM Zone 37S (EPSG:32737)  
-↓  
-Hydrological diagnostics and flow accumulation  
-↓  
-Clip accumulation back to Lamu County  
-↓  
-Stream thresholding and drainage extraction  
-↓  
-Slope and terrain analysis  
-↓  
-Rainfall, land-cover and soil analysis  
-↓  
-Flood susceptibility mapping  
-↓  
-Exposure analysis  
-↓  
-Flood risk mapping
+The final susceptibility model combines six standardized factors, each scored from 1 to 5:
 
-## Current Processing Status
+1. Long-term extreme rainfall (CHIRPS Rx5day, 1991–2025)
+2. Distance to drainage
+3. Elevation
+4. Slope
+5. Land use / land cover (Dynamic World 2025)
+6. Soil texture (KENSOTER)
 
-### Completed
+## AHP Weights
 
-- Lamu County boundary prepared and reprojected to EPSG:32737.
-- SRTM 30 m DEM loaded.
-- Original county-clipped DEM created and reprojected.
-- Initial sink filling, flow direction and flow accumulation completed for diagnostic purposes.
-- A 50 km hydrological buffer was created around Lamu County to reduce administrative-boundary artefacts.
-- Buffered SRTM DEM created and reprojected to EPSG:32737.
-- SAGA Fill Sinks (Wang & Liu) was tested on the buffered DEM.
-- GRASS `r.watershed` accumulation from the unfilled buffered DEM was retained as the better working hydrology result after comparison.
-- Working buffered flow-accumulation raster created: `Lamu_Flow_Accumulation_Buffer50km_RAW_WL`.
-- Accumulation clipped back to Lamu County: `Lamu_Flow_Accumulation_Lamu_RAW_WL`.
-- Negative-accumulation diagnostic showed approximately 1.17% of valid Lamu cells were negative.
-- Absolute accumulation raster created: `Lamu_Flow_Accumulation_Lamu_ABS`.
-- A 5,000-cell stream threshold was selected as the working drainage threshold, equivalent to about 4.5 km² contributing area at 30 m resolution.
-- Stream mask converted to integer/CELL format, thinned, background converted to NULL, and successfully vectorized.
-- Vector drainage network clipped to the county boundary: `Lamu_Drainage_5000_Clipped`.
-- Dissolved drainage network created: `Lamu_Drainage_5000_Dissolved`.
+The working AHP weights used in the weighted overlay are:
 
-### Current Step
+| Factor | Weight |
+|---|---:|
+| Rainfall | 0.2422 |
+| Distance to drainage | 0.2422 |
+| Elevation | 0.2148 |
+| Slope | 0.1348 |
+| Land cover | 0.0829 |
+| Soil texture | 0.0829 |
 
-Hydrological preprocessing and drainage extraction are complete enough to proceed to the next flood-conditioning factor.
+The pairwise comparison consistency ratio was approximately **0.0088**, below the conventional 0.10 threshold.
 
-The next main analysis step is **slope derivation and classification** from the projected Lamu DEM.
+## Final Weighted Overlay
+
+The final continuous AHP susceptibility raster is:
+
+`Lamu_Flood_Susceptibility_AHP_v3.tif`
+
+Observed statistics:
+
+- Minimum: 1.2146
+- Maximum: 4.9990
+- Mean: 3.0368
+- Standard deviation: 0.5485
+
+The continuous surface was classified into five equal-interval susceptibility classes:
+
+1. Very Low
+2. Low
+3. Moderate
+4. High
+5. Very High
+
+Final classified raster:
+
+`Lamu_Flood_Susceptibility_Final_Classified.tif`
+
+## Final Susceptibility Results
+
+| Class | Area (km²) | Share of classified area |
+|---|---:|---:|
+| Very Low | 167.24 | 2.79% |
+| Low | 1,537.31 | 25.66% |
+| Moderate | 3,063.37 | 51.13% |
+| High | 1,167.79 | 19.49% |
+| Very High | 55.88 | 0.93% |
+
+**High + Very High:** approximately **1,223.67 km²**, or **20.42%** of the classified area.
+
+The classified area totals approximately **5,991.59 km²**.
+
+## Main Processing Workflow
+
+Lamu County boundary  
+↓  
+DEM preparation and 50 km hydrological buffer  
+↓  
+GRASS flow accumulation and drainage extraction  
+↓  
+Slope and elevation preparation  
+↓  
+Distance-to-drainage raster  
+↓  
+CHIRPS Rx5day rainfall processing  
+↓  
+Dynamic World 2025 land-cover processing  
+↓  
+KENSOTER soil-texture processing  
+↓  
+Standardisation to 1–5 susceptibility scores  
+↓  
+AHP weighted overlay  
+↓  
+Five-class flood-susceptibility map  
+↓  
+Settlement labelling and final cartographic layout
 
 ## Important Processing Decisions
 
 - Large raster datasets remain on the local computer and are not stored in GitHub.
-- Hydrology was processed over a 50 km buffer instead of exactly at the county boundary to reduce edge effects.
-- The SAGA-filled DEM produced geometric artefacts in the derived flow accumulation, so the GRASS `r.watershed` result from the projected buffered DEM without SAGA filling was retained for the working drainage model.
-- A 5,000-cell threshold is currently used for the working stream network.
-- The drainage line-merging step was not required for continuing the flood-susceptibility workflow.
+- Hydrology was processed over a 50 km buffer to reduce administrative-boundary artefacts.
+- GRASS `r.watershed` accumulation from the projected buffered DEM was retained after comparison with a SAGA-filled workflow that produced geometric artefacts.
+- A 5,000-cell stream threshold was used for the working drainage network, equivalent to about 4.5 km² contributing area at 30 m resolution.
+- Permanent-water pixels in the final land-cover susceptibility layer were assigned NoData rather than treated as land susceptibility classes.
+- All final model rasters were aligned to the same 30 m grid before weighted overlay.
 
-## Next Steps
+## Interpretation
 
-1. Derive slope from the projected Lamu DEM.
-2. Reclassify slope into flood-susceptibility classes.
-3. Prepare additional conditioning factors such as rainfall, land cover and soil.
-4. Standardise the factors for multi-criteria flood-susceptibility analysis.
-5. Produce the flood-susceptibility surface.
-6. Add settlements, roads, population and critical infrastructure for exposure analysis.
-7. Produce the final Lamu County flood-risk map.
+This product is a **flood susceptibility map**, not a real-time flood forecast. It identifies locations where terrain, drainage, rainfall, land-cover and soil conditions are comparatively more conducive to flooding. A full flood-risk assessment additionally requires exposure and vulnerability information.
 
-## Planned Outputs
+## Repository Scope
 
-- Elevation map
-- Slope map
-- Drainage map
-- Flow accumulation map
-- Flood susceptibility map
-- Coastal flood susceptibility map
-- Infrastructure exposure map
-- Final flood risk map
-
-## Project Status
-
-**Work in progress — hydrological preprocessing and drainage extraction completed; terrain-factor analysis is next.**
+GitHub stores the project documentation, methodology, scripts and lightweight outputs. Large DEMs, GeoTIFFs and other heavy GIS datasets remain in the local project workspace.
 
 Detailed processing notes are maintained in [`docs/workflow-progress.md`](docs/workflow-progress.md).
+
+Final susceptibility results are summarized in [`docs/flood-susceptibility-results.md`](docs/flood-susceptibility-results.md).
